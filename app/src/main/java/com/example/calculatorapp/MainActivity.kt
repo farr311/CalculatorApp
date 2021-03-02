@@ -2,13 +2,13 @@ package com.example.calculatorapp
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
 
 //TODO: Make buttons change colors when pressed
-//TODO: Display text as integer if fractional part is 0
 //TODO: Add ripple effect for buttons
 //TODO: Add automated tests for every operation
 //TODO: Add self-building automated tests with logging
@@ -18,6 +18,8 @@ import android.widget.TextView
 //TODO: Add landscape orientation support with enhances specter of available operations
 //TODO: Add support for dark theme
 //TODO: Set selected operation button color to @colors/colorSelected
+//TODO: Replace getting buttons with group selection
+//TODO: Add support for performing unary operations on the second operand
 class MainActivity : AppCompatActivity() {
     private var buttons = arrayOfNulls<Button>(11)
     private var operationButtons = arrayOfNulls<Button>(7)
@@ -43,8 +45,6 @@ class MainActivity : AppCompatActivity() {
 
         valueTextView = findViewById(R.id.valueText)
 
-
-        //TODO: replace with group selection
         operationButtons[0] = findViewById(R.id.buttonDivide)
         operationButtons[1] = findViewById(R.id.buttonMultiply)
         operationButtons[2] = findViewById(R.id.buttonSubtract)
@@ -102,16 +102,16 @@ class MainActivity : AppCompatActivity() {
                     R.id.buttonMultiply -> operation = Operations.MULTIPLICATION
                     R.id.buttonDivide -> operation = Operations.DIVISION
                     R.id.buttonPercent -> {
-                        operation = Operations.NEGATION
-                        valueTextView.text = applyOperation().toString()
+                        operation = Operations.PERCENTAGE
+                        setResultText()
                     }
                     R.id.buttonSign -> {
-                        operation = Operations.PERCENTAGE
-                        valueTextView.text = applyOperation().toString()
+                        operation = Operations.NEGATION
+                        setResultText()
                     }
                     R.id.buttonEquals -> {
                         refill = false
-                        valueTextView.text = applyOperation().toString()
+                        setResultText()
                     }
                 }
             }
@@ -124,26 +124,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setResultText() {
+        val value = applyOperation()
+        Log.println(Log.VERBOSE, "VV", value.toString())
+
+        valueTextView.text = if (value - value.toInt() == 0.0) value.toInt().toString()
+            else value.toString()
+    }
+
     private fun applyOperation() : Double {
         val returnValue : Double
+        var resetValues = true
 
-        if (value1 != null && value2 != null) {
-            returnValue = when (operation) {
-                Operations.SUBTRACTION -> value1 as Double - value2 as Double
-                Operations.DIVISION -> value1 as Double / value2 as Double
-                Operations.ADDITION -> value1 as Double + value2 as Double
-                Operations.MULTIPLICATION -> value1 as Double * value2 as Double
+        if (value1 != null || value2 != null) {
+            when (operation) {
+                Operations.SUBTRACTION -> returnValue = value1 as Double - value2 as Double
+                Operations.DIVISION -> returnValue = value1 as Double / value2 as Double
+                Operations.ADDITION -> returnValue = value1 as Double + value2 as Double
+                Operations.MULTIPLICATION -> returnValue = value1 as Double * value2 as Double
                 else -> {
-                    if (operation == Operations.NEGATION) {
-                        -(value1 as Double)
+                    val v : Double
+
+                    if (value2 != null) {
+                        v = value2 as Double
+                        resetValues = false
                     } else {
-                        value1 as Double / 100
+                        v = value1 as Double
                     }
+
+                    Log.println(Log.VERBOSE, "VALUE", (-v).toString() + " " + operation)
+                    returnValue = if (operation == Operations.NEGATION) -v else v / 100
                 }
             }
 
-            value1 = null
-            value2 = null
+            if (resetValues) {
+                value1 = null
+                value2 = null
+            }
         } else {
             returnValue = value1 ?: value2 ?: 0.0
         }
